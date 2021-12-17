@@ -9,6 +9,7 @@ type node struct {
 	isWild   bool
 }
 
+// matchChild finds one child which matches part
 func (n *node) matchChild(part string) *node {
 	for _, child := range n.children {
 		if child.part == part || child.isWild {
@@ -18,6 +19,7 @@ func (n *node) matchChild(part string) *node {
 	return nil
 }
 
+// matchChildren finds all children which matches part
 func (n *node) matchChildren(part string) []*node {
 	nodes := make([]*node, 0)
 	for _, child := range n.children {
