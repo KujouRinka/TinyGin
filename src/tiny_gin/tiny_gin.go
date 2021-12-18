@@ -1,7 +1,9 @@
 package tiny_gin
 
 import (
+	"html/template"
 	"net/http"
+	"path"
 	"strings"
 )
 
@@ -13,6 +15,9 @@ type Engine struct {
 	*RouterGroup
 	router *router
 	groups []*RouterGroup
+
+	htmlTemplates *template.Template
+	funcMap       template.FuncMap
 }
 
 type RouterGroup struct {
@@ -57,8 +62,17 @@ func (e *Engine) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	c := newContext(w, r)
+	c.engine = e
 	c.handlers = middlewares
 	e.router.handle(c)
+}
+
+func (e *Engine) SetFuncMap(funcMap template.FuncMap) {
+	e.funcMap = funcMap
+}
+
+func (e *Engine) LoadHTMLGlob(pattern string) {
+	e.htmlTemplates = template.Must(template.New("").Funcs(e.funcMap).ParseGlob(pattern))
 }
 
 func (r *RouterGroup) Group(prefix string) *RouterGroup {
@@ -88,4 +102,25 @@ func (r *RouterGroup) POST(pattern string, handler HandlerFunc) {
 // Use is defined to add middleware to the group
 func (r *RouterGroup) Use(middlewares ...HandlerFunc) {
 	r.middlewares = append(r.middlewares, middlewares...)
+}
+
+// create static handler
+func (r *RouterGroup) createStaticHandler(relativePath string, fs http.FileSystem) HandlerFunc {
+	absolutePath := path.Join(r.prefix, relativePath) + "/"
+	fileServer := http.StripPrefix(absolutePath, http.FileServer(fs))
+	return func(ctx *Context) {
+		file := ctx.Param("filepath")
+		if _, err := fs.Open(file); err != nil {
+			ctx.Status(http.StatusNotFound)
+			return
+		}
+		fileServer.ServeHTTP(ctx.Writer, ctx.Req)
+	}
+}
+
+// Static serve static files
+func (r *RouterGroup) Static(relativePath string, root string) {
+	handler := r.createStaticHandler(relativePath, http.Dir(root))
+	urlPattern := path.Join(relativePath, "*filepath")
+	r.GET(urlPattern, handler)
 }

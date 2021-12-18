@@ -2,22 +2,28 @@ package main
 
 import (
 	"TinyGin/src/tiny_gin"
+	"fmt"
+	"html/template"
 	"net/http"
+	"time"
 )
+
+func FormatAdDate(t time.Time) string {
+	year, month, day := t.Date()
+	return fmt.Sprintf("%d-%02d-%02d", year, month, day)
+}
 
 func main() {
 	r := tiny_gin.New()
 	r.Use(tiny_gin.Logger())
-	r.GET("/index", func(ctx *tiny_gin.Context) {
-		ctx.HTML(http.StatusOK, "<h1>Index Page</h1>")
+	r.SetFuncMap(template.FuncMap{
+		"FormatAsDate": FormatAdDate,
 	})
+	r.LoadHTMLGlob("templates/*")
+	r.Static("/assets", "./static")
 
-	v1 := r.Group("/v1")
-	v1.GET("/", func(ctx *tiny_gin.Context) {
-		ctx.HTML(http.StatusOK, "<h1>Hello World</h1>")
-	})
-	v1.GET("/hello", func(ctx *tiny_gin.Context) {
-		ctx.String(http.StatusOK, "hello %s, you're at %s\n", ctx.Query("name"), ctx.Path)
+	r.GET("/", func(ctx *tiny_gin.Context) {
+		ctx.HTML(http.StatusOK, "css.tmpl", nil)
 	})
 
 	v2 := r.Group("/v2")
