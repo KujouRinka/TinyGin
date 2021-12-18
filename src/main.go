@@ -7,6 +7,7 @@ import (
 
 func main() {
 	r := tiny_gin.New()
+	r.Use(tiny_gin.Logger())
 	r.GET("/index", func(ctx *tiny_gin.Context) {
 		ctx.HTML(http.StatusOK, "<h1>Index Page</h1>")
 	})

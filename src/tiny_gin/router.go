@@ -1,6 +1,7 @@
 package tiny_gin
 
 import (
+	"log"
 	"net/http"
 	"strings"
 )
@@ -32,7 +33,7 @@ func parsePattern(pattern string) []string {
 }
 
 func (r *router) addRoute(method string, pattern string, handler HandlerFunc) {
-	// log.Printf("Route %4s - %s", method, pattern)
+	log.Printf("Route %4s - %s", method, pattern)
 	parts := parsePattern(pattern)
 	key := method + "-" + pattern
 	if _, ok := r.roots[method]; !ok {
@@ -70,14 +71,19 @@ func (r *router) getRoute(method string, path string) (*node, map[string]string)
 func (r *router) handle(c *Context) {
 	n, params := r.getRoute(c.Method, c.Path)
 	if n != nil {
-		c.Params = params
 		key := c.Method + "-" + c.Path
 		if f, ok := r.handlers[key]; ok {
-			f(c)
+			c.Params = params
+			c.handlers = append(c.handlers, f)
 		} else {
-			c.String(http.StatusNotFound, "404 NOT FOUND: %s\n", c.Path)
+			c.handlers = append(c.handlers, func(ctx *Context) {
+				ctx.String(http.StatusNotFound, "404 NOT FOUND: %s\n", c.Path)
+			})
 		}
 	} else {
-		c.String(http.StatusNotFound, "404 NOT FOUND: %s\n", c.Path)
+		c.handlers = append(c.handlers, func(ctx *Context) {
+			ctx.String(http.StatusNotFound, "404 NOT FOUND: %s\n", c.Path)
+		})
 	}
+	c.Next()
 }

@@ -1,8 +1,8 @@
 package tiny_gin
 
 import (
-	"log"
 	"net/http"
+	"strings"
 )
 
 // HandlerFunc defines the request handler used by TinyGin
@@ -50,7 +50,15 @@ func (e *Engine) Run(addr string) (err error) {
 }
 
 func (e *Engine) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	e.router.handle(newContext(w, r))
+	var middlewares []HandlerFunc
+	for _, group := range e.groups {
+		if strings.HasPrefix(r.URL.Path, group.prefix) {
+			middlewares = append(middlewares, group.middlewares...)
+		}
+	}
+	c := newContext(w, r)
+	c.handlers = middlewares
+	e.router.handle(c)
 }
 
 func (r *RouterGroup) Group(prefix string) *RouterGroup {
@@ -66,7 +74,6 @@ func (r *RouterGroup) Group(prefix string) *RouterGroup {
 
 func (r *RouterGroup) addRoute(method string, comp string, handler HandlerFunc) {
 	pattern := r.prefix + comp
-	log.Printf("Route %4s - %s", method, pattern)
 	r.engine.router.addRoute(method, pattern, handler)
 }
 
@@ -76,4 +83,9 @@ func (r *RouterGroup) GET(pattern string, handler HandlerFunc) {
 
 func (r *RouterGroup) POST(pattern string, handler HandlerFunc) {
 	r.addRoute("POST", pattern, handler)
+}
+
+// Use is defined to add middleware to the group
+func (r *RouterGroup) Use(middlewares ...HandlerFunc) {
+	r.middlewares = append(r.middlewares, middlewares...)
 }
