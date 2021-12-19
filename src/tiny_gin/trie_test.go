@@ -21,7 +21,7 @@ func TestParsePattern(t *testing.T) {
 	ok = ok && reflect.DeepEqual(parsePattern("/p/*"), []string{"p", "*"})
 	ok = ok && reflect.DeepEqual(parsePattern("/p/*name/*"), []string{"p", "*name"})
 	if !ok {
-		t.Fatal("test parsePattern failed")
+		t.Error("test parsePattern failed")
 	}
 }
 
@@ -29,15 +29,20 @@ func TestGetRoute(t *testing.T) {
 	r := newTestRouter()
 	n, ps := r.getRoute("GET", "/hello/somePath")
 	if n == nil {
-		t.Fatal("nil shouldn't be returned")
+		t.Error("nil shouldn't be returned")
 	}
 
 	if n.pattern != "/hello/:name" {
-		t.Fatal("should match /hello/:name")
+		t.Error("should match /hello/:name")
 	}
 
 	if ps["name"] != "somePath" {
-		t.Fatal("name should be equal to 'somePath'")
+		t.Error("name should be equal to 'somePath'")
 	}
 	fmt.Printf("matched path: %s, params['name']: %s\n", n.pattern, ps["name"])
+
+	n, ps = r.getRoute("GET", "/assets/somepath/somefile")
+	if ps["filepath"] != "somepath/somefile" {
+		t.Error("filepath should be equal to 'somepath/somefile'")
+	}
 }
