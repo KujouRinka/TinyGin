@@ -106,7 +106,7 @@ func (r *RouterGroup) Use(middlewares ...HandlerFunc) {
 
 // create static handler
 func (r *RouterGroup) createStaticHandler(relativePath string, fs http.FileSystem) HandlerFunc {
-	absolutePath := path.Join(r.prefix, relativePath) + "/"
+	absolutePath := path.Join(r.prefix, relativePath)
 	fileServer := http.StripPrefix(absolutePath, http.FileServer(fs))
 	return func(ctx *Context) {
 		file := ctx.Param("filepath")
